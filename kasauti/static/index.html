@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kasauti — Label Check</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥫</text></svg>">
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #ffffff; --ink: #1d1d1b; --muted: #6b6a65; --line: #e6e4dc;
+    --accent: #2f6b4f; --accent-ink: #ffffff; --chip: #efeee8;
+    --safe: #2f8a57; --safe-bg: #e7f4ec; --mod: #c27a12; --mod-bg: #fbf1e1;
+    --risky: #c4392f; --risky-bg: #fbe9e7; --unk: #7a7a7a; --unk-bg: #efefef;
+    --radius: 14px; --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141513; --card: #1d1f1c; --ink: #ecebe6; --muted: #9c9b94; --line: #2e302c;
+      --accent: #5fb58a; --accent-ink: #0f1a14; --chip: #262824;
+      --safe: #5fc58b; --safe-bg: #18291f; --mod: #e2a447; --mod-bg: #2c2416;
+      --risky: #ef6a5f; --risky-bg: #2f1a18; --unk: #a3a3a3; --unk-bg: #262626;
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+  header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  header h1 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+  header p { margin: 0; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+          box-shadow: var(--shadow); padding: 18px; }
+  .card + .card { margin-top: 16px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+       margin: 0 0 10px; font-weight: 600; }
+  label.field { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
+  input[type=text], textarea, select {
+    width: 100%; font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  textarea { min-height: 150px; resize: vertical; font-size: 13px; }
+  input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  .tabs { display: flex; gap: 4px; background: var(--chip); padding: 4px; border-radius: 10px; margin-bottom: 14px; }
+  .tabs button { flex: 1; border: 0; background: transparent; color: var(--muted); font: inherit;
+                 padding: 8px; border-radius: 8px; cursor: pointer; }
+  .tabs button[aria-selected=true] { background: color-mix(in srgb, var(--accent) 22%, var(--card)); color: var(--ink);
+                                     font-weight: 600; box-shadow: var(--shadow); }
+  .pane[hidden] { display: none; }
+
+  .drop { border: 1.5px dashed var(--line); border-radius: 12px; padding: 22px; text-align: center;
+          color: var(--muted); cursor: pointer; display: block; }
+  .drop:hover, .drop.over { border-color: var(--accent); color: var(--ink); }
+  .drop img { max-width: 100%; max-height: 260px; border-radius: 8px; display: block; margin: 0 auto; }
+  .drop input { display: none; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { border: 1px solid var(--line); background: var(--chip); color: var(--ink); border-radius: 999px;
+          padding: 5px 11px; font: inherit; font-size: 13px; cursor: pointer; }
+  .chip[aria-pressed=true] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .toggle { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; color: var(--muted); }
+
+  .go { width: 100%; margin-top: 16px; border: 0; border-radius: 12px; padding: 13px; font: inherit; font-weight: 600;
+        background: var(--accent); color: var(--accent-ink); cursor: pointer; font-size: 16px; }
+  .go:disabled { opacity: .6; cursor: progress; }
+  .samples { margin-top: 8px; font-size: 13px; color: var(--muted); }
+  .samples button { background: none; border: 0; color: var(--accent); font: inherit; cursor: pointer; padding: 0 4px; text-decoration: underline; }
+
+  /* results */
+  .empty { text-align: center; color: var(--muted); padding: 60px 20px; }
+  .empty .big { font-size: 44px; }
+  .verdict { display: flex; align-items: center; gap: 18px; border-radius: var(--radius); padding: 18px; }
+  .verdict .ring { --p: 0; width: 76px; height: 76px; border-radius: 50%; flex: none; display: grid; place-items: center;
+                   background: conic-gradient(currentColor calc(var(--p) * 1%), color-mix(in srgb, currentColor 15%, transparent) 0); }
+  .verdict .ring span { width: 60px; height: 60px; border-radius: 50%; background: var(--card); display: grid;
+                        place-items: center; font-weight: 700; font-size: 18px; color: var(--ink); }
+  .verdict h3 { margin: 0; font-size: 26px; letter-spacing: -.01em; }
+  .verdict .meta { color: var(--muted); font-size: 13px; }
+  .v-Safe { background: var(--safe-bg); color: var(--safe); }
+  .v-Moderate { background: var(--mod-bg); color: var(--mod); }
+  .v-Risky { background: var(--risky-bg); color: var(--risky); }
+  .v-Unknown { background: var(--unk-bg); color: var(--unk); }
+  .product { font-weight: 600; color: var(--ink); }
+  .explain { font-size: 16px; margin: 16px 2px 4px; }
+
+  .signals { list-style: none; margin: 0; padding: 0; }
+  .signals li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .signals li:first-child { border-top: 0; }
+  .signals .t { font-weight: 600; }
+  .signals .d { color: var(--muted); font-size: 13.5px; }
+  .signals .src { font-size: 12px; color: var(--muted); opacity: .8; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 6px; }
+  .l-avoid { background: var(--risky); box-shadow: 0 0 0 3px var(--risky-bg); }
+  .l-high { background: var(--risky); }
+  .l-moderate { background: var(--mod); }
+  .l-low { background: #c9b458; }
+  .pos { background: var(--safe); }
+  .tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--chip);
+         color: var(--muted); margin-left: 6px; vertical-align: 2px; font-weight: 500; }
+  ul.tips { margin: 0; padding-left: 18px; } ul.tips li { margin: 4px 0; }
+  .warn { background: var(--mod-bg); color: var(--ink); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-top: 8px; }
+  .err { background: var(--risky-bg); color: var(--ink); border-radius: 10px; padding: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  td, th { text-align: left; padding: 7px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; border-top: 0; }
+  .r-none { color: var(--safe); } .r-low { color: #a8952f; } .r-moderate { color: var(--mod); } .r-high { color: var(--risky); }
+  details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  .nutri { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+  .nutri div { background: var(--bg); border-radius: 10px; padding: 8px 10px; }
+  .nutri b { display: block; font-size: 17px; } .nutri span { font-size: 12px; color: var(--muted); }
+  .spinner { width: 18px; height: 18px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
+             display: inline-block; animation: spin .8s linear infinite; vertical-align: -3px; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .foot { color: var(--muted); font-size: 12px; text-align: center; margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🥫 Kasauti</h1>
+    <p>A touchstone for packaged food — scan a label, get a verdict made for you.</p>
+  </header>
+
+  <div class="grid">
+    <!-- ───────────── input ───────────── -->
+    <form id="form" autocomplete="off">
+      <section class="card">
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" data-tab="photo" aria-selected="true">📷 Photo</button>
+          <button type="button" role="tab" data-tab="text" aria-selected="false">⌨️ Text</button>
+          <button type="button" role="tab" data-tab="barcode" aria-selected="false">▥ Barcode</button>
+        </div>
+
+        <div class="pane" data-pane="photo">
+          <label class="drop" id="drop">
+            <input type="file" id="image" accept="image/*" capture="environment">
+            <div id="dropText">Tap to take a photo or choose one<br><small>Ingredients + nutrition table in frame</small></div>
+          </label>
+        </div>
+        <div class="pane" data-pane="text" hidden>
+          <textarea id="text" placeholder="Ingredients: Refined Wheat Flour (Maida), Sugar, ...&#10;Nutrition per 100g: Energy 480 kcal, Total Sugars 26g, ..."></textarea>
+          <div class="samples">Try a sample:
+            <button type="button" data-sample="biscuit">biscuit</button>
+            <button type="button" data-sample="namkeen">namkeen</button>
+            <button type="button" data-sample="oats">oats</button>
+          </div>
+        </div>
+        <div class="pane" data-pane="barcode" hidden>
+          <input type="text" id="barcode" inputmode="numeric" placeholder="13-digit barcode under the stripes">
+          <div class="samples">Looked up on Open Food Facts.</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Your profile</h2>
+        <label class="field">Health conditions</label>
+        <div class="chips" id="conditions"></div>
+        <label class="field">Allergies / intolerances</label>
+        <div class="chips" id="allergies"></div>
+        <div class="row">
+          <div><label class="field" for="region">Region</label>
+            <select id="region"><option value="IN">India</option><option value="EU">EU</option><option value="US">USA</option></select></div>
+          <div><label class="field" for="language">Explain in</label>
+            <select id="language"></select></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>AI model</h2>
+        <div class="row">
+          <div><label class="field" for="provider">Provider</label><select id="provider"></select></div>
+          <div><label class="field" for="model">Model</label><input type="text" id="model" placeholder="default"></div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="offline"> Offline (rules only — text &amp; barcode)</label>
+        <button class="go" id="go" type="submit">Check this label</button>
+      </section>
+    </form>
+
+    <!-- ───────────── result ───────────── -->
+    <main id="result">
+      <div class="card empty"><div class="big">🔍</div><p>Add a label on the left and press <b>Check this label</b>.</p></div>
+    </main>
+  </div>
+  <p class="foot">Informational only — not medical advice.</p>
+</div>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+const CONDITIONS = { diabetes: "Diabetes", hypertension: "High BP", kidney_disease: "Kidney disease", pku: "PKU",
+  celiac: "Celiac", pregnancy: "Pregnancy", gout: "Gout", weight_loss: "Weight loss" };
+const ALLERGIES = { milk: "Milk", egg: "Egg", gluten: "Gluten/Wheat", peanut: "Peanut", tree_nuts: "Tree nuts",
+  soy: "Soy", sesame: "Sesame", fish: "Fish", crustacean: "Shellfish", mustard: "Mustard", sulphites: "Sulphites" };
+const LANGS = ["English", "Hindi", "Marathi", "Bengali", "Tamil", "Telugu", "Kannada", "Malayalam", "Gujarati", "Punjabi"];
+const LEVEL_ORDER = { avoid: 0, high: 1, moderate: 2, low: 3 };
+const KIND_LABEL = { nutrient: "nutrition", ingredient: "ingredient", allergen: "allergy", regulatory: "regulation",
+  condition: "your condition", processing: "processing", claim: "pack claim" };
+
+let mode = "photo", imageBlob = null;
+const store = { get(k, d) { try { return JSON.parse(localStorage.getItem("kasauti." + k)) ?? d; } catch { return d; } },
+                set(k, v) { try { localStorage.setItem("kasauti." + k, JSON.stringify(v)); } catch {} } };
+
+// ── chips
+function chips(el, items, key) {
+  const saved = new Set(store.get(key, []));
+  el.innerHTML = Object.entries(items).map(([v, l]) =>
+    `<button type="button" class="chip" data-v="${v}" aria-pressed="${saved.has(v)}">${l}</button>`).join("");
+  el.addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true");
+    store.set(key, picked(el));
+  });
+}
+const picked = el => [...el.querySelectorAll('.chip[aria-pressed=true]')].map(b => b.dataset.v);
+chips($("#conditions"), CONDITIONS, "conditions");
+chips($("#allergies"), ALLERGIES, "allergies");
+$("#language").innerHTML = LANGS.map(l => `<option>${l}</option>`).join("");
+for (const id of ["region", "language"]) {
+  $("#" + id).value = store.get(id, $("#" + id).value);
+  $("#" + id).addEventListener("change", e => store.set(id, e.target.value));
+}
+
+// ── tabs
+document.querySelectorAll("[role=tab]").forEach(t => t.addEventListener("click", () => {
+  mode = t.dataset.tab;
+  document.querySelectorAll("[role=tab]").forEach(x => x.setAttribute("aria-selected", x === t));
+  document.querySelectorAll(".pane").forEach(p => p.hidden = p.dataset.pane !== mode);
+}));
+
+// ── samples
+document.querySelectorAll("[data-sample]").forEach(b => b.addEventListener("click", async () => {
+  $("#text").value = await (await fetch(`/samples/${b.dataset.sample}`)).text();
+}));
+
+// ── image: downscale on the device so phone photos upload fast
+async function loadImage(file) {
+  const bmp = await createImageBitmap(file, { imageOrientation: "from-image" }).catch(() => null);
+  if (!bmp) { imageBlob = file; }
+  else {
+    const s = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+    const c = Object.assign(document.createElement("canvas"), { width: bmp.width * s, height: bmp.height * s });
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    imageBlob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.9));
+  }
+  $("#dropText").innerHTML = `<img src="${URL.createObjectURL(imageBlob)}" alt="label preview"><small>Tap to change</small>`;
+}
+$("#image").addEventListener("change", e => e.target.files[0] && loadImage(e.target.files[0]));
+const drop = $("#drop");
+["dragover", "dragenter"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, () => drop.classList.remove("over")));
+drop.addEventListener("drop", e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) loadImage(f); });
+
+// ── providers
+(async () => {
+  const p = await (await fetch("/providers")).json();
+  const def = (await (await fetch("/health")).json()).default_provider;
+  const saved = store.get("provider", def);
+  $("#provider").innerHTML = Object.entries(p).map(([name, info]) =>
+    `<option value="${name}" data-model="${esc(info.default_model)}" ${info.configured ? "" : "disabled"}>${name}${info.configured ? "" : " (no key)"}</option>`).join("");
+  $("#provider").value = p[saved]?.configured ? saved : Object.keys(p).find(k => p[k].configured);
+  $("#model").value = store.get("model." + $("#provider").value, "");
+  syncModel();
+})();
+function syncModel() { $("#model").placeholder = $("#provider").selectedOptions[0]?.dataset.model || "default"; }
+$("#provider").addEventListener("change", e => { store.set("provider", e.target.value); $("#model").value = store.get("model." + e.target.value, ""); syncModel(); });
+$("#model").addEventListener("change", e => store.set("model." + $("#provider").value, e.target.value.trim()));
+
+// ── submit
+$("#form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const fd = new FormData();
+  if (mode === "photo") { if (!imageBlob) return showError("Add a photo of the label first."); fd.append("image", imageBlob, "label.jpg"); }
+  if (mode === "text") { const t = $("#text").value.trim(); if (!t) return showError("Paste the label text first."); fd.append("text", t); }
+  if (mode === "barcode") { const b = $("#barcode").value.trim(); if (!b) return showError("Enter a barcode first."); fd.append("barcode", b); }
+  fd.append("profile", JSON.stringify({ conditions: picked($("#conditions")), allergies: picked($("#allergies")),
+                                        region: $("#region").value, language: $("#language").value }));
+  const offline = $("#offline").checked;
+  fd.append("use_llm", !offline);
+  if (!offline) { fd.append("provider", $("#provider").value); if ($("#model").value.trim()) fd.append("model", $("#model").value.trim()); }
+
+  const go = $("#go"); go.disabled = true;
+  go.innerHTML = `<span class="spinner"></span>${offline ? "Checking…" : "Reading the label…"}`;
+  $("#result").innerHTML = `<div class="card empty"><div class="spinner" style="width:32px;height:32px"></div><p>${offline ? "Applying rules…" : "Reading the label with " + esc($("#provider").value) + "… local models can take a minute."}</p></div>`;
+  try {
+    const r = await fetch("/analyze", { method: "POST", body: fd });
+    const body = await r.json();
+    if (!r.ok) throw new Error(typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail));
+    render(body);
+  } catch (err) { showError(err.message); }
+  finally { go.disabled = false; go.textContent = "Check this label"; }
+});
+
+function showError(msg) { $("#result").innerHTML = `<div class="card err">⚠️ ${esc(msg)}</div>`; }
+
+// ── render
+function render(r) {
+  const L = r.label || {}, n = L.nutrition || {};
+  const name = [L.brand, L.product_name].filter(Boolean).join(" — ") || "This product";
+  const pct = Math.round((10 - r.score) * 10);
+  const signals = r.signals.filter(s => s.kind !== "claim").sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level]);
+  const claims = r.signals.filter(s => s.kind === "claim");
+  const myAllergens = Object.entries(r.allergens || {});
+  const nutri = [["energy_kcal", "Energy", "kcal"], ["sugar_g", "Sugar", "g"], ["fat_g", "Fat", "g"], ["saturated_fat_g", "Sat. fat", "g"],
+                 ["trans_fat_g", "Trans fat", "g"], ["sodium_mg", "Sodium", "mg"], ["protein_g", "Protein", "g"], ["fiber_g", "Fibre", "g"]]
+                .filter(([k]) => n[k] != null);
+
+  const sig = s => `<li><span class="dot l-${s.level}"></span><div>
+      <div class="t">${esc(s.title)}<span class="tag">${s.level === "avoid" ? "avoid" : KIND_LABEL[s.kind] || s.kind}</span></div>
+      <div class="d">${esc(s.detail)}</div>${s.evidence && s.kind !== "claim" && !/_/.test(s.evidence) ? `<div class="src">Source: ${esc(s.evidence)}</div>` : ""}</div></li>`;
+
+  $("#result").innerHTML = `
+    <section class="card">
+      <div class="verdict v-${r.verdict}">
+        <div class="ring" style="--p:${r.verdict === "Unknown" ? 0 : pct}"><span>${r.verdict === "Unknown" ? "?" : pct}</span></div>
+        <div>
+          <div class="product">${esc(name)}</div>
+          <h3>${r.verdict}</h3>
+          <div class="meta">Health score ${r.verdict === "Unknown" ? "—" : pct + "/100"} · confidence ${Math.round(r.confidence * 100)}%
+            ${r.ultra_processed ? " · ultra-processed" : ""}<br>Checked for: ${esc([...r.profile.conditions.map(c => CONDITIONS[c] || c),
+              ...r.profile.allergies.map(a => (ALLERGIES[a] || a) + " allergy")].join(", ") || "general health")}
+            · ${r.provider ? `via ${esc(r.provider)}/${esc(r.model)}` : "offline rules"}</div>
+        </div>
+      </div>
+      <p class="explain">${esc(r.explanation)}</p>
+      ${r.tips.length ? `<ul class="tips">${r.tips.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
+      ${r.warnings.map(w => `<div class="warn">⚠️ ${esc(w)}</div>`).join("")}
+    </section>
+
+    ${signals.length || r.positives.length ? `<section class="card"><h2>Why</h2><ul class="signals">
+      ${signals.map(sig).join("")}
+      ${r.positives.map(p => `<li><span class="dot pos"></span><div><div class="t">${esc(p)}</div></div></li>`).join("")}
+    </ul></section>` : ""}
+
+    ${claims.length ? `<section class="card"><h2>Pack claims vs reality</h2><ul class="signals">${claims.map(sig).join("")}</ul></section>` : ""}
+
+    ${nutri.length ? `<section class="card"><h2>Nutrition per 100${L.is_liquid ? " ml" : " g"}</h2><div class="nutri">
+      ${nutri.map(([k, l, u]) => `<div><b>${n[k]}${u}</b><span>${l}</span></div>`).join("")}</div></section>` : ""}
+
+    ${myAllergens.length ? `<section class="card"><h2>Allergens on this label</h2><div class="chips">
+      ${myAllergens.map(([a, lvl]) => `<span class="chip">${esc(ALLERGIES[a] || a)}${lvl === "may_contain" ? " (may contain)" : ""}</span>`).join("")}</div></section>` : ""}
+
+    ${r.ingredients.length || r.unknown_ingredients.length ? `<section class="card"><details><summary>Ingredient breakdown (${r.ingredients.length} identified${r.unknown_ingredients.length ? `, ${r.unknown_ingredients.length} unknown` : ""})</summary>
+      <table><tr><th>Ingredient</th><th>Type</th><th>Risk</th></tr>
+      ${r.ingredients.map(i => `<tr><td>${esc(i.name)}${i.code ? ` <span class="tag">${esc(i.code)}</span>` : ""}${i.origin === "ai" ? ' <span class="tag">AI · unverified</span>' : ""}<div class="src">${esc(i.note)}</div></td>
+        <td>${esc(i.category.replaceAll("_", " "))}</td><td class="r-${i.risk}">${i.risk}</td></tr>`).join("")}
+      ${r.unknown_ingredients.map(u => `<tr><td>${esc(u)}</td><td>—</td><td>unknown</td></tr>`).join("")}
+      </table></details></section>` : ""}
+  `;
+  $("#result").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+</script>
+</body>
+</html>
