@@ -1,0 +1,19 @@
+# core
+langgraph>=1.1
+pydantic>=2.10
+python-dotenv>=1.0
+httpx>=0.28
+pillow>=11.0
+
+# API
+fastapi>=0.115
+uvicorn>=0.30
+python-multipart>=0.0.20
+
+# LLM providers — install the ones you use (Ollama uses the openai client)
+anthropic>=0.75
+openai>=1.100
+google-genai>=1.50
+
+# dev
+pytest>=8.0

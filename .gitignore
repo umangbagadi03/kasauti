@@ -1,0 +1,8 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+.DS_Store
+.kasauti_cache.sqlite
+chroma_db/
+.claude/
