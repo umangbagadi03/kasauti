@@ -1,0 +1,9 @@
+langgraph
+langchain-google-genai
+google-generativeai
+pytesseract
+pillow
+fastapi
+uvicorn
+sqlite-utils
+python-dotenv
